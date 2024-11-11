@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./front-end/chat-pine
+    ports:
+      - "3000:3001"
+    volumes:
+      - ./front-end/chat-pine:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+  intent-api:
+    build:
+      context: ./api
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - ../resources:/app/resources
+    networks:
+      - app-network
+  rag-api:
+    build:
+      context: ./llm_service_api
+    ports:
+      - "8001:8000"
+    volumes:
+      - .:/app
+      - ./llm_service_api/temp:/app/llm_service_api/temp
+      - ../resources:/app/resources
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    runtime: nvidia
+    networks:
+      - app-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  web-api:
+    build:
+      context: ./web_api
+    ports:
+      - "4000:8000"
+    volumes:
+      - .:/app
+      - ../resources:/app/resources
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
